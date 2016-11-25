@@ -24,11 +24,10 @@ public class GamePlay {
 		board = new Board();
 		turn = BLACK;
 		pass = 0;
-		
-		startGameAgents();
 	}
 	
 	// TODO Board whatchamacallit_one_move(Board b, turn? t)
+	// think of a nice way of calling gamePlay for a single turn
 	
 	public void startGameAgents () {
 		
@@ -98,8 +97,9 @@ public class GamePlay {
 		in.close();
 	}
 	
+	// Call the Ai
 	public boolean doMinimaxMove(int turn){
-		Minimax max = new Minimax(turn, board);
+		Negamax max = new Negamax(board, turn);
 		Position play = max.doMiniMax();
 		if (play != null)
 			board.doMove(max.doMiniMax(), turn);

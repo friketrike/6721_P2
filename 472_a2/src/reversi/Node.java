@@ -1,26 +1,38 @@
 package reversi;
+import java.util.ArrayList;
 import java.util.List;
 
 public class Node {
 
-	public int height;
-	public int value;
+	public int depth;
+	public double value = -Double.MAX_VALUE;
 	public Board board;
-	public Board secBoard; // what's this?
-	public List<Node> children;
-	public double alpha;
-	public double beta;
+	public Node parent;
+	public List<Node> children = new ArrayList<Node>(); 
 	public Position move;
 	public int turn;
-	public boolean isMax;
-
-	public Node(Position move){
-		this.move=move;
+	
+	// root node ctor
+	public Node(Board board, int turn) {
+		this.board = board;
+		this.turn = turn;
+		parent = null;
+		move = null;
 	}
 	
-	public Node(Node otherNode){
-		
+	// subtree constructor 
+	public Node(Node parent, Position move) { 
+		this.parent = parent;
+		this.move = move;
+		depth = parent.depth + 1; 
+		board = new Board(parent.board);
+		board.doMove(move, parent.turn);
+		turn = GamePlay.opposite(parent.turn);
 	}
-
-
+	
+	public void addChild(Node child) {
+		
+		children.add(child);
+	}
+	
 }

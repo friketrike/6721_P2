@@ -40,6 +40,6 @@ public class Position {
 		this.y = y;
 	}
 	
-	// TODO, implement alphanumeric position, to string and to int (parsing might be a pain)
+	// TODO, implement alphanumeric position, to string and to int (parsing might be a pain, not a priority)
 
 }

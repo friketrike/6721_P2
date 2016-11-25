@@ -6,43 +6,38 @@ import directions.*;
 
 public class Board {
 
-	private int board[][] = new int[8][8];
-	public static List<MvCmd> directions = new ArrayList<MvCmd>();
+	public static int BOARD_SIZE = 8;
+	private int board[][];
+	public static MvCmd [] directions = {new Up(), new Left(), new UpLeft(), new UpRight(),
+								new DownLeft(), new DownRight(), new Right(), new Down()};
 
-	// 
+	// Default ctor
 	public Board() {
 		
-		initializeDirections();
+		assert(BOARD_SIZE % 2 == 0);
+		board = new int[BOARD_SIZE][BOARD_SIZE];
 		
-		board[3][4] = GamePlay.WHITE;
-		board[4][3] = GamePlay.WHITE;
-		board[3][3] = GamePlay.BLACK;
-		board[4][4] = GamePlay.BLACK;
+		int s = BOARD_SIZE / 2;
+		board[s-1][s] = GamePlay.BLACK;
+		board[s][s-1] = GamePlay.BLACK;
+		board[s-1][s-1] = GamePlay.WHITE;
+		board[s][s] = GamePlay.WHITE;
 	}
 	
+	// Copy ctor
 	public Board(Board anotherBoard) {
 		
-		initializeDirections();
+		assert(BOARD_SIZE % 2 == 0);
+		board = new int[BOARD_SIZE][BOARD_SIZE];
 		
-		for(int i =0; i<anotherBoard.board.length; ++i){
-			for(int j=0; j<anotherBoard.board.length; ++j){
+		for(int i = 0; i < BOARD_SIZE; ++i){
+			for(int j = 0; j < BOARD_SIZE; ++j){
 				board[i][j]=anotherBoard.board[i][j];
 			}
 		}
 	}
 	
 	// TODO constructor which makes a board from a string so that we can play against another agent
-	
-	private void initializeDirections() {
-		directions.add(new Up());
-		directions.add(new Left());
-		directions.add(new UpLeft());
-		directions.add(new UpRight());
-		directions.add(new DownRight());
-		directions.add(new DownLeft());
-		directions.add(new Right());
-		directions.add(new Down());
-	}
 
 	public void doMove(Position pos, int turn) {
 		
@@ -59,16 +54,19 @@ public class Board {
 		}
 	}
 
+	// lighten up the look of the code by removing indexing
 	public int getPlayerAtPos(Position pos) {
 		
 		return board[pos.getX()][pos.getY()];
 	}
 	
+	// lighten up the look of the code by removing indexing
 	public void setPlayerAtPos(Position pos, int turn) {
 		
 		board[pos.getX()][pos.getY()] = turn;
 	}
 
+	
 	public int[] getBoardScore() {
 		
 		int[] out = new int[2];
@@ -84,28 +82,28 @@ public class Board {
 	public List<Position> getValidMoves(int turn) {
 		
 		List<Position> pos = getEmptySquares(); 
-		List<Position> results = new ArrayList<Position>();
+		List<Position> validMoves = new ArrayList<>();
 
 		for (int i = 0; i < pos.size(); ++i) {
-			for (int j = 0; j < directions.size(); ++j) {
-				Position newPos = directions.get(j).move(pos.get(i));
-				if (isDirValid(newPos, directions.get(j), turn))
-					results.add(pos.get(i));
+			for (int j = 0; j < directions.length; ++j) {
+				Position newPos = directions[j].move(pos.get(i));
+				if (isDirValid(newPos, directions[j], turn))
+					validMoves.add(pos.get(i));
 			}
 		}
 
-		return results;
+		return validMoves;
 	}
 	
 	public List<Position> getFlips(Position pos, int turn) {
 		
-		List<Position> results = new ArrayList<Position>();
+		List<Position> results = new ArrayList<>();
 
-		for (int j = 0; j < directions.size(); ++j) {
-			Position newPos = directions.get(j).move(pos);
-			while (isDirValid(newPos, directions.get(j), turn)) {
+		for (int j = 0; j < directions.length; ++j) {
+			Position newPos = directions[j].move(pos);
+			while (isDirValid(newPos, directions[j], turn)) {
 				results.add(newPos);
-				newPos = directions.get(j).move(newPos);
+				newPos = directions[j].move(newPos);
 			}
 		}
 
@@ -125,7 +123,7 @@ public class Board {
 
 	public List<Position> getEmptySquares() {
 		
-		List<Position> locations = new ArrayList<Position>();
+		List<Position> locations = new ArrayList<>();
 		for (int i = 0; i < 8; ++i) {
 			for (int j = 0; j < 8; ++j) {
 				if (board[i][j] == 0) {
