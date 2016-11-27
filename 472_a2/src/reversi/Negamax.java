@@ -5,7 +5,7 @@ import java.lang.Math;
 
 public class Negamax {
 
-	static public int PLY_DEPTH = 6;
+	static public int PLY_DEPTH = 4;
 	private int ithChild = 1;
 	private Node root;
 	private Heuristic h;
