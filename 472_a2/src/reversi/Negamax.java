@@ -1,13 +1,17 @@
 package reversi;
 import java.util.List;
+// import java.util.Stack;
+import java.lang.Math;
 
 public class Negamax {
 
-	static private int PLY_DEPTH = 2;
+	static public int PLY_DEPTH = 3;
+	private int ithChild = 1;
 	private Node root;
+	private Heuristic h;
 	// Here's the interfacing - plug in a heuristic that implements the Heuristic 
 	// interface and we're good to go, no need for the source, just the byte-code
-	Heuristic blackHeuristic = new SimpleHeuristic();
+	Heuristic blackHeuristic = new FedeHeuristic();
 	Heuristic whiteHeuristic = new SimpleHeuristic();
 	
 	public Negamax(Board passedBoard, int turn) {
@@ -16,7 +20,10 @@ public class Negamax {
 		generateSubTree(root);
 		double beta = Double.MAX_VALUE;
 		double alpha = -Double.MAX_VALUE;
+		h = (turn == GamePlay.BLACK) ? blackHeuristic : whiteHeuristic;
+		System.out.print("Evaluating node: 1");
 		evaluateNegamax(root, alpha, beta);
+		System.out.println(' ');
 	}
 	
 	private void generateSubTree(Node parent) {
@@ -35,10 +42,15 @@ public class Negamax {
 	// method will start the minimax search.
 	public Position doMiniMax() {
 		
-		Position bestMove = null;
-		for (int i = 0; i < root.children.size(); i++){
+		if (root.children.isEmpty()) return null;
+		double bestVal = -root.children.get(0).value;
+		Position bestMove = root.children.get(0).move;
+		for (int i = 1; i < root.children.size(); i++){
 			Node child = root.children.get(i);
-			if (child.value == -root.value) bestMove = child.move;
+			if (-child.value > bestVal) {
+				bestVal = -child.value;
+				bestMove = child.move;
+			}
 		}
 		
 		return bestMove;
@@ -48,39 +60,30 @@ public class Negamax {
 		
 		// evaluate all leaves first, traverse away from the root
 		// then use leaves' value to decide internal nodes
-		if(!n.children.isEmpty()) { 
+		
+		// TODO Stack<Node> nodes = new Stack<>(); would make this quicker
+		if(!n.children.isEmpty()) {
 			for (int i = 0; i < n.children.size(); i++){
+				// this is just for the display to work
+				int spaces = ((int)Math.log10(ithChild-1))+1;
+				for (int j = 0; j < spaces; j++)
+					System.out.print('\b');
+				System.out.print(ithChild);
+				System.out.flush();
 				Node child = n.children.get(i);
-				evaluateNegamax(child, -beta, -alpha);
+				++ithChild;
+				evaluateNegamax(child, -beta, -alpha); // turn into stack for speedup?
 				alpha = (-child.value > alpha) 
 						 ? -child.value : alpha;
 				n.value = alpha;
-				if (alpha > beta) {
+				if (alpha >= beta) {
 					break;
 				}
 			}
 		}
-		// evaluate leaves, plug in appropriate heuristic per player
+		// evaluate leaves
 		else {
-			Heuristic h = (root.turn == GamePlay.BLACK) ? blackHeuristic : whiteHeuristic;
 			n.value = h.evaluateBoard(n.board, n.turn);
-			alpha = (n.value > alpha) ? n.value : alpha;
-			beta = (n.value < beta) ? n.value : beta;
 		}
 	}
-	
-//	// This is where we should plug in heuristics
-//	private double evaluateBoard(Board board, int turn){
-//		
-//		// just use greedy piece count for now
-//		// NOTE this relies on turn and pieces = {-1,1} and empty = 0
-//		int count = 0;
-//		for(int i = 0; i < Board.BOARD_SIZE; ++i){
-//			for(int j = 0; j < Board.BOARD_SIZE; ++j){
-//				count += board.getPlayerAtPos(new Position(j,i));
-//			}
-//		}
-//		return (double)turn * count;
-//	}
-	
 }

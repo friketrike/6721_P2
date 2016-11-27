@@ -102,7 +102,7 @@ public class GamePlay {
 		Negamax max = new Negamax(board, turn);
 		Position play = max.doMiniMax();
 		if (play != null)
-			board.doMove(max.doMiniMax(), turn);
+			board.doMove(play, turn);
 		return (play != null);
 	}
 

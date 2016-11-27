@@ -70,8 +70,8 @@ public class Board {
 	public int[] getBoardScore() {
 		
 		int[] out = new int[2];
-		for (int i = 0; i < 8; ++i) {
-			for (int j = 0; j < 8; ++j) {
+		for (int i = 0; i < BOARD_SIZE; ++i) {
+			for (int j = 0; j < BOARD_SIZE; ++j) {
 				if (board[j][i] == GamePlay.BLACK) out[0]++;
 				else if (board[j][i] == GamePlay.WHITE) out[1]++;
 			}
@@ -124,8 +124,8 @@ public class Board {
 	public List<Position> getEmptySquares() {
 		
 		List<Position> locations = new ArrayList<>();
-		for (int i = 0; i < 8; ++i) {
-			for (int j = 0; j < 8; ++j) {
+		for (int i = 0; i < BOARD_SIZE; ++i) {
+			for (int j = 0; j < BOARD_SIZE; ++j) {
 				if (board[i][j] == 0) {
 					Position pos = new Position(i, j);
 					locations.add(pos);

@@ -19,9 +19,14 @@ public class Position {
 			return true;
 		return false;
 	}
+	
+	@Override
+	public int hashCode() {
+	    return 101 * x + y;
+	}
 
 	public boolean isValid() {
-		return(x < 8 && x >= 0 && y < 8 && y >= 0);
+		return(x < Board.BOARD_SIZE && x >= 0 && y < Board.BOARD_SIZE && y >= 0);
 	}
 
 	public int getX() {
