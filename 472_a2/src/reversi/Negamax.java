@@ -1,18 +1,28 @@
+// Comp 6721 AI, Project 2, fall 2016
+// Ashley Lee 26663486
+// Federico O'Reilly Regueiro 40012304
+
 package reversi;
 import java.util.List;
+import java.util.Scanner;
 // import java.util.Stack;
 import java.lang.Math;
 
+// Negamax is like minimax except min turns are multiplied by 1, 
+// simplifying implementation slightly
 public class Negamax {
 
-	static public int PLY_DEPTH = 4;
+	// Here's the interfacing - upon instantiation (ie driver code), 
+	// plug in a heuristic that implements the Heuristic 
+	// interface and we're good to go, no need for the source, just the byte-code
+	public static Heuristic blackHeuristic;
+	public static Heuristic whiteHeuristic;
+	
+	public static int plyDepth;
 	private int ithChild = 1;
 	private Node root;
 	private Heuristic h;
-	// Here's the interfacing - plug in a heuristic that implements the Heuristic 
-	// interface and we're good to go, no need for the source, just the byte-code
-	Heuristic blackHeuristic = new FedeHeuristic();
-	Heuristic whiteHeuristic = new SimpleHeuristic();
+	
 	
 	public Negamax(Board passedBoard, int turn) {
 		
@@ -26,12 +36,13 @@ public class Negamax {
 		System.out.println(' ');
 	}
 	
+	// generate possible subsequent boards
 	private void generateSubTree(Node parent) {
 		
 		List<Position> moves = parent.board.getValidMoves(parent.turn);
 		for (int i = 0; i < moves.size(); i++) {
 			Node child = new Node(parent, moves.get(i));
-			if (child.depth < PLY_DEPTH) {
+			if (child.depth < plyDepth) {
 				generateSubTree(child);
 			}
 			parent.children.add(child);
@@ -56,12 +67,12 @@ public class Negamax {
 		return bestMove;
 	}
 
+	// evalueate leaves and propagate values upwards
 	public void evaluateNegamax(Node n, double alpha, double beta) {
 		
 		// evaluate all leaves first, traverse away from the root
 		// then use leaves' value to decide internal nodes
 		
-		// TODO Stack<Node> nodes = new Stack<>(); would make this quicker
 		if(!n.children.isEmpty()) {
 			for (int i = 0; i < n.children.size(); i++){
 				// this is just for the display to work
@@ -84,6 +95,62 @@ public class Negamax {
 		// evaluate leaves
 		else {
 			n.value = h.evaluateBoard(n.board, n.turn);
+		}
+	}
+	
+	// helper method for instantiation
+	public static void choosePly(Scanner in) {
+		
+		System.out.println("Choose a ply-depth, (1 to 6 works fine, 6 might crash)");
+		
+		boolean isValid = false;
+		int input = 0;
+		while (!isValid) {
+			input = in.nextInt();
+			if (input < 1 || input > 7) {
+				System.out.println("Invalid input, try again");
+			} else isValid = true;
+		}
+			plyDepth = input;
+	}
+	
+	public static void chooseHeuristic(int ai, Scanner in) {
+		
+		String color = GamePlay.turnToString(ai);
+		System.out.println("Choose a heuristic for " + color + " Ai:");
+		System.out.println("1 - Simple Heuristic - piece count");
+		System.out.println("2 - Ashley's Heuristic");
+		System.out.println("3 - Fede's Heuristic");
+		
+		boolean isValid = false;
+		int input = 0;
+		while (!isValid) {
+			input = in.nextInt();
+			if (input < 1 || input > 3) {
+				System.out.println("Invalid input, try again");
+			} else isValid = true;
+		}
+		switch (input) {
+			case 1:
+				if (ai == GamePlay.BLACK)
+					blackHeuristic = new SimpleHeuristic();
+				else
+					whiteHeuristic = new SimpleHeuristic();
+				break;
+			case 2:
+				if (ai == GamePlay.BLACK)
+					blackHeuristic = new PosWeightHeuristic();
+				else
+					whiteHeuristic = new PosWeightHeuristic();
+				break;
+			case 3:
+				if (ai == GamePlay.BLACK)
+					blackHeuristic = new FedeHeuristic();
+				else
+					whiteHeuristic = new FedeHeuristic();
+				break;
+			default:
+				System.out.println("We shouldn't be here...");
 		}
 	}
 }

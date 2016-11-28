@@ -1,3 +1,7 @@
+// Comp 6721 AI, Project 2, fall 2016
+// Ashley Lee 26663486
+// Federico O'Reilly Regueiro 40012304
+
 package reversi;
 public class Position {
 	int x;
@@ -11,6 +15,12 @@ public class Position {
 	public Position(Position pos){
 		x = pos.x;
 		y = pos.y;
+	}
+	
+	// takes a coordinate position of the form [a-h][1-8]
+	public Position(String standard) {
+		this.x = (int)(standard.charAt(0) - 'a');
+		this.y = (int)(standard.charAt(1) - 1);
 	}
 
 	@Override
@@ -45,6 +55,9 @@ public class Position {
 		this.y = y;
 	}
 	
-	// TODO, implement alphanumeric position, to string and to int (parsing might be a pain, not a priority)
-
+	public String toString() {
+		char xCoord = (char) ('a'+x);
+		String coord = "" + xCoord + (y+1);
+		return coord;
+	}
 }

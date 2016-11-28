@@ -1,3 +1,7 @@
+// Comp 6721 AI, Project 2, fall 2016
+// Ashley Lee 26663486
+// Federico O'Reilly Regueiro 40012304
+
 package reversi;
 import java.util.ArrayList;
 import java.util.List;
@@ -37,8 +41,30 @@ public class Board {
 		}
 	}
 	
-	// TODO constructor which makes a board from a string so that we can play against another agent
+	
+	// Potentially used for piping input in the form of a string board
+	public Board(String boardString) {
+		boardString = boardString.replace("(", "");
+		boardString = boardString.replace(",", "");
+		boardString = boardString.replace(")", "");
+		boardString = boardString.replaceAll("//s+", "");
+		int squares = Board.BOARD_SIZE * Board.BOARD_SIZE;
+		assert(boardString.length() == squares);
+		for (int i = 0; i < squares; i++) {
+			int row = i / Board.BOARD_SIZE;
+			int col = i % Board.BOARD_SIZE;
+			board[col][row] = charToToken(boardString.charAt(i));
+		}
+	}
+	
+	private int charToToken(char c) {
+		int token = 0;
+		if (c == 'B') token = GamePlay.BLACK;
+		else if (c == 'W') token = GamePlay.WHITE;
+		return token;
+	}
 
+	// Place token on the board
 	public void doMove(Position pos, int turn) {
 		
 		List<Position> flips = getFlips(pos, turn);
@@ -46,6 +72,7 @@ public class Board {
 		setPlayerAtPos(pos, turn);
 	}
 
+	// flip pieces when 'captured'
 	public void doFlips(List<Position> flips) {
 		
 		for (int i = 0; i < flips.size(); ++i) {
@@ -66,7 +93,7 @@ public class Board {
 		board[pos.getX()][pos.getY()] = turn;
 	}
 
-	
+	// tally end results
 	public int[] getBoardScore() {
 		
 		int[] out = new int[2];
@@ -79,6 +106,7 @@ public class Board {
 		return out;
 	}
 
+	// Where can we move next?
 	public List<Position> getValidMoves(int turn) {
 		
 		List<Position> pos = getEmptySquares(); 
@@ -87,7 +115,7 @@ public class Board {
 		for (int i = 0; i < pos.size(); ++i) {
 			for (int j = 0; j < directions.length; ++j) {
 				Position newPos = directions[j].move(pos.get(i));
-				if (isDirValid(newPos, directions[j], turn))
+				if (isDirValid(newPos, directions[j], turn) && !validMoves.contains(pos.get(i)))
 					validMoves.add(pos.get(i));
 			}
 		}
@@ -95,6 +123,7 @@ public class Board {
 		return validMoves;
 	}
 	
+	// Find positions where we'd need to flip upon token placement
 	public List<Position> getFlips(Position pos, int turn) {
 		
 		List<Position> results = new ArrayList<>();
@@ -110,6 +139,7 @@ public class Board {
 		return results;
 	}
 
+	// Will there be flips along this line?
 	public boolean isDirValid(Position curPos, MvCmd dir, int turn) {
 		
 		Position newPos = curPos;
@@ -121,6 +151,7 @@ public class Board {
 		return (newPos.isValid() && newPos != curPos && getPlayerAtPos(newPos) == turn);
 	}
 
+	// Get all empty squares on the board
 	public List<Position> getEmptySquares() {
 		
 		List<Position> locations = new ArrayList<>();
@@ -135,12 +166,21 @@ public class Board {
 		
 		return locations;
 	}
+	
+	// When will java get default 
+	// wrapper just so we can print the board on one line too
+	public void printBoard(){
+		boolean oneLiner = false;
+		printBoard(oneLiner);
+	}
 
 	// Prints the board
-	public void printBoard() {
-		System.out.println("(");
+	public void printBoard(boolean oneLiner) {
+		System.out.print("(");
+		if (!oneLiner) System.out.println("");
 		for (int i = 0; i < board.length; i++) {
-			System.out.print("    (");
+			if (!oneLiner) System.out.print("    ");
+			System.out.print("(");
 			for (int j = 0 ; j < board.length; j++) {
 				char C;
 				if (board[j][i] == 0) C = '0';
@@ -150,7 +190,9 @@ public class Board {
 				System.out.print(C);
 				if (j < board.length - 1) System.out.print(", ");
 			} 
-			System.out.println(")");
+			System.out.print(")");
+			if (!oneLiner) System.out.println("");
+			else System.out.print(", ");
 		}
 		System.out.println(")");
 	}
