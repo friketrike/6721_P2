@@ -67,7 +67,7 @@ public class Negamax {
 		return bestMove;
 	}
 
-	// evalueate leaves and propagate values upwards
+	// evaluate leaves and propagate values upwards
 	public void evaluateNegamax(Node n, double alpha, double beta) {
 		
 		// evaluate all leaves first, traverse away from the root

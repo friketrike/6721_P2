@@ -1,0 +1,231 @@
+\documentclass{article}
+
+%\usepackage{caption}
+
+\renewcommand{\thesubsection}{\thesection.\alph{subsection}}
+
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{float}
+
+\usepackage{listings}
+\usepackage{color}
+
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+
+\lstset{
+  language=Java,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\small\ttfamily},
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{dkgreen},
+  stringstyle=\color{mauve},
+  breaklines=true,
+  breakatwhitespace=true,
+  tabsize=4
+}
+
+\begin{document}
+\title{Comp 6721 - Artificial Intelligence - Project 2 project report}
+\author{Federico O'Reilly Regueiro - 40012304}
+\date{November 28th, 2016}
+\maketitle
+
+%------------------------ report - Intro ------------------------%
+\section{Intro}
+The present project touches on the use of minimax, alpha-beta pruning and heuristics for game-playing. In the context of Reversi, the state-space grows rather quickly as a function of board-size. For every square, we can have either empty, white or black; yielding a state space of size $3^n$, where n is the number of squares on a side of the board.
+
+Typically, Reversi is played on an $8\times 8$ board. This yields a whopping $3^{64} = 3,433,683,820,292,512,484,657,849,089,281$ possible board configurations\footnote{Of course, a vast majority of them are not legal configurations.}. Obviously, this is not a state space that can be searched with brute-force.
+For this project, we use a variation of minimax search optimization called negamax.
+
+%------------------------ report - Negamax and heuristics ------------------------%
+\section{Negamax}
+The only difference between minimax and negamax is that negamax alternates node value signs for
+ board-configuration evaluations depending on whether each configuration corresponds to a min board or a max board. 
+There is no operational difference with the way that minimax works yet negamax facilitates a slightly 
+cleaner implementation and streamlines the code somewhat.
+
+\begin{lstlisting}[firstnumber=56]
+	public Position doMiniMax() {
+			
+		if (root.children.isEmpty()) return null;
+		double bestVal = root.children.get(0).value;
+		Position bestMove = root.children.get(0).move;
+		for (int i = 1; i < root.children.size(); i++){
+			Node child = root.children.get(i);
+			if (-child.value > bestVal) {
+				bestVal = -child.value;
+				bestMove = child.move;
+			}
+		}
+		
+		return bestMove;
+	}
+\end{lstlisting}
+
+However, as we've seen in class, there is still a need to prune the search tree greatly in order to evaluate only pertinent board configurations. This is the reason $\alpha \beta$ pruning is so important, see line 84.
+
+\begin{lstlisting}[firstnumber=71]
+	public void evaluateNegamax(Node n, double alpha, double beta) {
+		
+		// evaluate all leaves first, traverse away from the root
+		// then use leaves' value to decide internal nodes
+		
+		if(!n.children.isEmpty()) {
+			for (int i = 0; i < n.children.size(); i++){
+				Node child = n.children.get(i);
+				evaluateNegamax(child, -beta, -alpha);
+				alpha = (-child.value > alpha) 
+						 ? -child.value : alpha;
+				n.value = alpha;
+				if (alpha >= beta) {
+					break;
+				}
+			}
+		}
+		// evaluate leaves
+		else {
+			n.value = h.evaluateBoard(n.board, n.turn);
+		}
+\end{lstlisting}
+
+In order to use $\alpha \beta$ pruning in negamax, on each successive level $k$, becomes $\alpha_k = -\beta_{k-1}, \beta_k = -\alpha_{k-1}$ as can be seen in line 79. 
+
+\section{Heuristic}
+As a heuristic, I have used a weighted sum of four different attributes of a board-configuration: corners, token stability, mobility and token parity. Tuning the sum is reliant on laboured trial and error and I could not find a satisfactory tuning for the evaluation of each different attribute.
+
+% ------------------------- attributes -------------------------------%
+\subsection{The simplest metric - token parity or piece count}
+The goal of reversi is to have more tokens on the board than the opponent. In this regard it is clear that token differential could be a good metric for measuring the goodness of any given configuration. However, Reversi is characterized by a rapidly changing board due to the constant token reversals, so piece differential can only be a metric as endgame draws near. 
+For all practical means, it follows  that simple token differential is also more relevant the higher the ply of the minimax / negamax algorithm, since the leaves of our search tree are closer to the end of the game.
+Unfortunately, in our recursive implementation, the JVM's heap is depleted at around 6 or 7 ply, which leaves little room to play with weighting which considers a more distant lookahead.
+
+\begin{lstlisting}[firstnumber=52]
+	private double pieceParity(Board board, int turn){
+		
+		int parity = 0;
+		for (int i = 0; i < Board.BOARD_SIZE; ++i) {
+			for (int j = 0; j < Board.BOARD_SIZE; ++j) {
+				parity += board.getPlayerAtPos(new Position(j, i));
+			}
+		}
+		return (double)parity * GamePlay.opposite(turn);
+	}
+\end{lstlisting}
+
+\subsection{stability}
+On the opposite side of the spectrum from the volatile piece-differential is piece-stability. This aspect of the heuristic takes into account how many of the player's pieces cannot be flipped anymore (namely corners and adjacent tokens) and it penalizes tokens which can be immediately flipped. Piece stability is a better predictor of the game's outcome but more so towards the latter half of the game since at the onset there are rarely any stable pieces since the most common way for pieces to gain stability is by touching corners directly or indirectly.
+
+The evaluation of token stability is the most involved one of the ones I chose so I decided to not account for certain configurations in which stability is achieved\footnote{Namely groups of pieces which end up being totally surrounded by the opponent.} in order to avoid consuming too much time during evaluation.
+
+\begin{lstlisting}[firstnumber=63]
+	private double stability(Board board, int turn) {
+		
+		List<Position> opponentMoves = board.getValidMoves(turn);
+		Set<Position> flips = new HashSet<>();
+		Set<Position> stable = new HashSet<>();
+		for (int i = 0; i < opponentMoves.size(); i++) {
+			List<Position> temp = board.getFlips(opponentMoves.get(i), turn);
+			for (int j = 0; j < temp.size(); j++) {
+				flips.add(temp.get(j));
+			}
+		}
+		
+		Position pos;
+		for (int i = 0; i < 4; i++) {
+			pos = theCorners[i];
+			do {
+				Position vScanPos = pos;
+				while (vScanPos.isValid() && board.getPlayerAtPos(vScanPos) == GamePlay.opposite(turn)) {
+					stable.add(vScanPos);
+					vScanPos = edges[i][0].move(vScanPos);
+				}
+				pos = edges[i][1].move(pos);
+			} while (pos.isValid() && board.getPlayerAtPos(pos) == GamePlay.opposite(turn)) ;
+		}
+		
+		int stability = -flips.size() + (3 * stable.size());
+		return (double)stability;
+	}
+\end{lstlisting}
+
+\subsection{corners}
+As we saw previously, corners are fundamental for token-stability and are therefore an important part of board-evaluation. 
+This part of the heuristic not only focuses on the corners themselves but also penalizes configurations which will most likely result in the opponent gaining a corner, such as configurations in which the player has a token one square away from an open corner and an opponent's token on the other side.
+
+\begin{lstlisting}[firstnumber=92]
+	private int corners(Board board, int turn) {
+		
+		int corners = 0;
+		for (int i = 0; i < 4; i++) {
+			if (board.getPlayerAtPos(theCorners[i]) == turn) {
+				corners++;
+			}
+			else if (board.getPlayerAtPos(theCorners[i]) == 0) {
+				for (int j = 0; j < 3; j++){
+					Position in1 = in[i][j].move(theCorners[i]);
+					Position in2 = in[i][j].move(in1);
+					if (board.getPlayerAtPos(in1) == GamePlay.opposite(turn) 
+							&& board.getPlayerAtPos(in2) == turn){
+						corners--;
+					}
+				}
+			}
+		}
+		return corners;
+	}
+\end{lstlisting}
+
+\subsection{mobility}
+It is possible to pass in the game, if there are no available moves. This is, of course, not really desirable as we loose the opportunity to populate the board. Additionally, the more spaces we have for placing a token, the more likely we are to have access to a good move in the near future. Therefore, this part of the heuristic tries to maximize relative player mobility and heavily penalizes configurations under which the player will have to pass.
+
+\begin{lstlisting}[firstnumber=113]
+	private double mobility(Board board, int turn) {
+		
+		int myMoves = board.getValidMoves(GamePlay.opposite(turn)).size();
+		if (myMoves == 0) return -1000; // we don't like passing
+		int yourMoves = board.getValidMoves(turn).size();
+		double mobility = ((double)myMoves-yourMoves) / ((double)myMoves+yourMoves);
+		return mobility * GamePlay.opposite(turn);	
+	}
+\end{lstlisting}
+
+\subsection{weighting}
+After several attempts at fine-tuning the heuristic, I could not find any series of weights which completely satisfied me. The tentative weights found were these:
+\begin{lstlisting}[firstnumber=39]
+	// Weighting
+	double par = ply * parity;// * ((64-remainingMoves)/64);
+	double mob = 2 * mobility;// * ((64-remainingMoves)/64);
+	double cor = 8 * corners / ply;
+	double stabl = 8 * stability;
+	
+	return par + mob + cor + stabl;
+\end{lstlisting}
+Where a factor for emphasizing end-game has been commented-out since it did not seem to improve performance.
+
+\section{test runs and performance}
+The heuristic was tested against my teammate's heuristic and performed somewhat similarly. The scores for different plys can be seen in figures \ref{fig:scoresAf} and \ref{fig:scoresFa}. Logs indicating board configurations, number of searched nodes and scores are attached in the electronic submission.
+
+\begin{figure}[H]
+\begin{center}
+	\includegraphics[width=2.6in, trim=1.6in 2.9in 1.5in 3.3in]{heuristicPerformance1}
+\caption{Teammate's PositionalHeuristic (black) vs FedeHeuristic(white) final scores as a function of ply-depth}\label{fig:scoresAf}%      
+\end{center}
+\end{figure}
+\begin{figure}[H]
+\begin{center}
+	\includegraphics[width=2.6in, trim=1.6in 2.9in 1.5in 3.3in]{HeuristicPerformance2}
+\caption{FedeHeuristic(black) vs teammate's PositionalHeuristic (white) final scores as a function of ply-depth}\label{fig:scoresFa}%      
+\end{center}
+\end{figure}
+
+
+
+\end{document} 
