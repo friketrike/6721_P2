@@ -20,7 +20,7 @@ public class Position {
 	// takes a coordinate position of the form [a-h][1-8]
 	public Position(String standard) {
 		this.x = (int)(standard.charAt(0) - 'a');
-		this.y = (int)(standard.charAt(1) - 1);
+		this.y = (int)(standard.charAt(1) - '1');
 	}
 
 	@Override
